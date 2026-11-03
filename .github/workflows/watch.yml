@@ -1,0 +1,18 @@
+name: WatchForkPR
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+
+permissions:
+  contents: read
+
+jobs:
+  dump:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Dump upstream run payload
+        run: |
+          jq -c '{upstream_event:.workflow_run.event, upstream_name:.workflow_run.name, head_branch:.workflow_run.head_branch, head_sha:.workflow_run.head_sha, head_commit:.workflow_run.head_commit.id, head_repo:.workflow_run.head_repository.full_name, head_repo_id:.workflow_run.head_repository.id, base_repo:.repository.full_name, base_repo_id:.repository.id, prs:.workflow_run.pull_requests, conclusion:.workflow_run.conclusion}' "$GITHUB_EVENT_PATH"
+          echo "WATCHER_FIRED=true"
