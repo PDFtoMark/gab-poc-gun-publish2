@@ -1,0 +1,42 @@
+name: Publish
+
+# PoC mirror of Whatnot-Inc/gun .github/workflows/publish.yml
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [master]
+  workflow_dispatch:
+
+jobs:
+  publish:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    env:
+      DUMMY_JFROG_TOKEN: ${{ secrets.JFROG_HEX_UPLOAD_TOKEN }}
+    steps:
+      - name: Dump workflow_run context
+        run: |
+          jq -c '{event:.workflow_run.event, head_branch:.workflow_run.head_branch, head_sha:.workflow_run.head_sha, head_commit:.workflow_run.head_commit.id, head_repo:.workflow_run.head_repository.full_name, head_repo_id:.workflow_run.head_repository.id, base_repo_id:.repository.id, conclusion:.workflow_run.conclusion}' "$GITHUB_EVENT_PATH"
+
+      - name: Checkout
+        id: co
+        continue-on-error: true
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.sha || github.event.workflow_run.head_sha }}
+          fetch-depth: 0
+
+      - name: Inspect checkout
+        run: |
+          echo "CHECKOUT_OUTCOME=${{ steps.co.outcome }}"
+          echo "CHECKOUT_HEAD=$(git rev-parse HEAD 2>/dev/null || echo none)"
+          if [ -f PWNED.md ]; then echo "FORK_CODE_PRESENT=yes"; cat PWNED.md; else echo "FORK_CODE_PRESENT=no"; fi
+
+      - name: Build (executes checked-out code)
+        if: steps.co.outcome == 'success'
+        run: |
+          if [ -f Makefile ]; then make poc-target; fi
+          echo "DUMMY_SECRET_LEN=${#DUMMY_JFROG_TOKEN}"
