@@ -1,11 +1,11 @@
 name: Publish
 
-# PoC mirror of Whatnot-Inc/gun .github/workflows/publish.yml
+# PoC mirror of Whatnot-Inc/gun publish.yml, with the workflow_run branch filter
+# removed so the fork-PR-triggered run reaches the checkout step.
 on:
   workflow_run:
     workflows: [CI]
     types: [completed]
-    branches: [master]
   workflow_dispatch:
 
 jobs:
